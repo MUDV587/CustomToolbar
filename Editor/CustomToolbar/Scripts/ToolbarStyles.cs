@@ -15,7 +15,8 @@ namespace UnityToolbarExtender
                 fontSize = 16,
                 alignment = TextAnchor.MiddleCenter,
                 imagePosition = ImagePosition.ImageAbove,
-                fontStyle = FontStyle.Bold
+                fontStyle = FontStyle.Bold,
+                fixedHeight = 20,
             };
         }
     }
