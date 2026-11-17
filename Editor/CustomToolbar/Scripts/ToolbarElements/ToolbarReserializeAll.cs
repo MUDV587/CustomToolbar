@@ -12,7 +12,7 @@ internal class ToolbarReserializeAll : BaseToolbarElement {
 	public override int SortingGroup => 5;
 
 	public override void Init() {
-		reserializeAllBtn = EditorGUIUtility.IconContent("P4_Updating");
+		reserializeAllBtn = EditorGUIUtility.IconContent("d_winbtn_win_restore_h@2x");
 		reserializeAllBtn.tooltip = "Reserialize All Assets";
 	}
 

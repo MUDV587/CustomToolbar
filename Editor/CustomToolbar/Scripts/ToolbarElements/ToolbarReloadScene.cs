@@ -15,7 +15,8 @@ internal class ToolbarReloadScene : BaseToolbarElement {
 	public override int SortingGroup => 3;
 
 	public override void Init() {
-		reloadSceneBtn = new GUIContent((Texture2D)AssetDatabase.LoadAssetAtPath($"{GetPackageRootPath}/Editor/CustomToolbar/Icons/LookDevResetEnv@2x.png", typeof(Texture2D)), "Reload scene");
+		reloadSceneBtn = EditorGUIUtility.IconContent("RotateTool On");
+		reloadSceneBtn.tooltip = "Reload scene";
 	}
 
 	protected override void OnDrawInList(Rect position) {
@@ -23,7 +24,6 @@ internal class ToolbarReloadScene : BaseToolbarElement {
 	}
 
 	protected override void OnDrawInToolbar() {
-		EditorGUIUtility.SetIconSize(new Vector2(17, 17));
 		if (GUILayout.Button(reloadSceneBtn, ToolbarStyles.commandButtonStyle)) {
 			if (EditorApplication.isPlaying) {
 				SceneManager.LoadScene(SceneManager.GetActiveScene().name);

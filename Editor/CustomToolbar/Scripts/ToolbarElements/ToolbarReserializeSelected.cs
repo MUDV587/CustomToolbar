@@ -12,7 +12,7 @@ internal class ToolbarReserializeSelected : BaseToolbarElement {
 	public override int SortingGroup => 5;
 
 	public override void Init() {
-		reserializeSelectedBtn = EditorGUIUtility.IconContent("Refresh");
+		reserializeSelectedBtn = EditorGUIUtility.IconContent("d_winbtn_win_max_h@2x");
 		reserializeSelectedBtn.tooltip = "Reserialize Selected Assets";
 	}
 
