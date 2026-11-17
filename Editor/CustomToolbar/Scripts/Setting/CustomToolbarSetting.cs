@@ -21,6 +21,8 @@ namespace UnityToolbarExtender
             new ToolbarReloadScene(),
             new ToolbarStartFromFirstScene(),
             new ToolbarSpace(),
+            new ToolbarSyncView(),
+            new ToolbarSpace(),
 
             new ToolbarSides(),
 
@@ -68,6 +70,8 @@ namespace UnityToolbarExtender
 
 					new ToolbarReloadScene(),
 					new ToolbarStartFromFirstScene(),
+					new ToolbarSpace(),
+					new ToolbarSyncView(),
 					new ToolbarSpace(),
 
 					new ToolbarSides(),
