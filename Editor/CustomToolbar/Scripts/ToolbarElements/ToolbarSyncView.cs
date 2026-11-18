@@ -34,6 +34,14 @@ internal class ToolbarSyncView : BaseToolbarElement
     private static float s_lastGameCamNear = float.NaN;
     private static float s_lastGameCamFar = float.NaN;
 
+    // "还原同步前视角"快照：仅按钮触发时记录一次（UnityUndo 不支持 SceneView 侧）
+    private static bool s_hasPreSyncSnapshot = false;
+    private static Vector3 s_preSyncPivot;
+    private static Quaternion s_preSyncRotation;
+    private static float s_preSyncFov = float.NaN;
+    private static float s_preSyncNearClip = float.NaN;
+    private static float s_preSyncFarClip = float.NaN;
+
     public override string NameInList => "[Sync View] Sync GameView & SceneView";
     public override int SortingGroup => 3;
 
@@ -98,7 +106,8 @@ internal class ToolbarSyncView : BaseToolbarElement
         bool guiEnable = GUI.enabled;
 
         GUI.enabled = true;
-        syncSceneToGame = GUILayout.Toggle(syncSceneToGame, syncSceneToggle, ToolbarStyles.commandButtonStyle);
+        var sceneToggleStyle = syncSceneToGame ? ActiveHintStyle : ToolbarStyles.commandButtonStyle;
+        syncSceneToGame = GUILayout.Toggle(syncSceneToGame, syncSceneToggle, sceneToggleStyle);
         if (syncSceneToGame)
         {
             syncGameToScene = false;
@@ -107,16 +116,26 @@ internal class ToolbarSyncView : BaseToolbarElement
         GUI.enabled = !(syncSceneToGame || syncGameToScene);
         if (GUILayout.Button(syncGameToSceneButton, ToolbarStyles.commandButtonStyle))
         {
-            SyncGameToScene();
+            SyncGameToScene(recordUndo: true);
         }
-        
+
         if (GUILayout.Button(syncSceneToGameButton, ToolbarStyles.commandButtonStyle))
         {
-            SyncSceneToGame();
+            SyncSceneToGame(recordUndo: true);
+        }
+
+        // 游戏→场景方向没有 UnityUndo，给一次性快照恢复按钮
+        if (s_hasPreSyncSnapshot)
+        {
+            if (GUILayout.Button(new GUIContent("↩", "Restore SceneView to its state before the last one-shot sync"), ToolbarStyles.commandButtonStyle, GUILayout.Width(28)))
+            {
+                RestorePreSyncSnapshot();
+            }
         }
 
         GUI.enabled = true;
-        syncGameToScene = GUILayout.Toggle(syncGameToScene, syncGameToggle, ToolbarStyles.commandButtonStyle);
+        var gameToggleStyle = syncGameToScene ? ActiveHintStyle : ToolbarStyles.commandButtonStyle;
+        syncGameToScene = GUILayout.Toggle(syncGameToScene, syncGameToggle, gameToggleStyle);
         if (syncGameToScene)
         {
             syncSceneToGame = false;
@@ -132,15 +151,15 @@ internal class ToolbarSyncView : BaseToolbarElement
     {
         if (syncSceneToGame)
         {
-            SyncSceneToGame();
+            SyncSceneToGame(recordUndo: false);
         }
 
         if (syncGameToScene)
         {
-            SyncGameToScene();
+            SyncGameToScene(recordUndo: false);
         }
     }
-    private void SyncSceneToGame()
+    private void SyncSceneToGame(bool recordUndo)
     {
         if (sceneView == null)
         {
@@ -165,14 +184,19 @@ internal class ToolbarSyncView : BaseToolbarElement
         bool transformChanged = t.rotation != desiredRot
                              || (t.position - desiredPos).sqrMagnitude > 1e-10f;
 
-        // 仅当实际变化时写入（避免每事件把游戏相机标 dirty，且可 Undo）
+        // 仅当实际变化时写入（避免每事件把游戏相机标 dirty）
         if (!clipChanged && !fovChanged && !transformChanged)
         {
             return;
         }
 
-        Undo.RecordObject(cam, "Sync View");
-        Undo.RecordObject(t, "Sync View");
+        // 连续（duringSceneGui）模式不把每帧变化塞进 Undo 历史，仅按钮一次性同步记录一个可撤销组
+        if (recordUndo)
+        {
+            Undo.SetCurrentGroupName("Sync View");
+            Undo.RecordObject(cam, "Sync View");
+            Undo.RecordObject(t, "Sync View");
+        }
 
         if (clipChanged)
         {
@@ -193,7 +217,7 @@ internal class ToolbarSyncView : BaseToolbarElement
 
         EditorUtility.SetDirty(cam);
     }
-    private void SyncGameToScene()
+    private void SyncGameToScene(bool recordUndo)
     {
         if (sceneView == null)
         {
@@ -213,6 +237,17 @@ internal class ToolbarSyncView : BaseToolbarElement
         }
 
         var cameraSettings = sceneView.cameraSettings;
+
+        // 快照：记录同步前的 SceneView（仅按钮一次性触发，供 Ctrl+Z 不支持的恢复场景使用）
+        if (recordUndo)
+        {
+            s_preSyncPivot = sceneView.pivot;
+            s_preSyncRotation = sceneView.rotation;
+            s_preSyncFov = cameraSettings.fieldOfView;
+            s_preSyncNearClip = cameraSettings.nearClip;
+            s_preSyncFarClip = cameraSettings.farClip;
+            s_hasPreSyncSnapshot = true;
+        }
 
         // 近远裁剪面只在 SceneView 未开启 dynamicClip 时生效，直接跳过无效写入
         if (!cameraSettings.dynamicClip)
@@ -262,6 +297,68 @@ internal class ToolbarSyncView : BaseToolbarElement
         s_lastGameCamNear = cam.nearClipPlane;
         s_lastGameCamFar = cam.farClipPlane;
         return true;
+    }
+
+    private static Texture2D s_activeHintTexture;
+    private static GUIStyle s_activeHintStyle;
+
+    private static Texture2D ActiveHintTexture
+    {
+        get
+        {
+            if (s_activeHintTexture == null)
+            {
+                s_activeHintTexture = CreateSolidTexture(new Color(0.85f, 0.45f, 0.1f, 1f));
+            }
+
+            return s_activeHintTexture;
+        }
+    }
+
+    // 状态提示：连续同步开关开启时，按钮底色变为橙色
+    private static GUIStyle ActiveHintStyle
+    {
+        get
+        {
+            if (s_activeHintStyle == null)
+            {
+                s_activeHintStyle = new GUIStyle(ToolbarStyles.commandButtonStyle)
+                {
+                    normal = new GUIStyleState { background = ActiveHintTexture, textColor = Color.white },
+                    onNormal = new GUIStyleState { background = ActiveHintTexture, textColor = Color.white },
+                    onHover = new GUIStyleState { background = ActiveHintTexture, textColor = Color.white },
+                    onActive = new GUIStyleState { background = ActiveHintTexture, textColor = Color.white },
+                };
+            }
+
+            return s_activeHintStyle;
+        }
+    }
+
+    private static Texture2D CreateSolidTexture(Color c)
+    {
+        var tex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+        tex.SetPixel(0, 0, c);
+        tex.Apply();
+        tex.hideFlags = HideFlags.HideAndDontSave;
+        return tex;
+    }
+
+    // 还原到最后一次按钮同步前的 SceneView（游戏→场景方向不被 UnityUndo 记录，作为一步撤销）
+    private static void RestorePreSyncSnapshot()
+    {
+        if (sceneView == null)
+        {
+            return;
+        }
+
+        var cs = sceneView.cameraSettings;
+        sceneView.pivot = s_preSyncPivot;
+        sceneView.rotation = s_preSyncRotation;
+        cs.fieldOfView = s_preSyncFov;
+        cs.nearClip = s_preSyncNearClip;
+        cs.farClip = s_preSyncFarClip;
+        s_hasPreSyncSnapshot = false;
     }
 
     #region 相机选择（SessionState 持久化，默认 MainCamera）
