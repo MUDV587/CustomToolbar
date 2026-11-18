@@ -67,10 +67,13 @@ namespace UnityToolbarExtender
 		}
 
 		private void OnMenuItemAdd(object target) {
-			setting.elements.Add(target as BaseToolbarElement);
+			var element = target as BaseToolbarElement;
+			setting.elements.Add(element);
 			m_toolbarSetting.ApplyModifiedProperties();
+			// 新元素必须在本会话也显式初始化（注册事件等），否则要等到域重载后才生效
+			element?.Init();
 #if UNITY_2020_3_OR_NEWER
-            setting.Save();
+			setting.Save();
 #endif
 		}
 

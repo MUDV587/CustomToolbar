@@ -15,6 +15,7 @@ internal class ToolbarEnterPlayMode : BaseToolbarElement {
 	public override int SortingGroup => 2;
 
 	public override void Init() {
+#if UNITY_2019_3_OR_NEWER
 		enterPlayModeOption = new[]{
 			"Disabled",
 			"Reload All",
@@ -22,6 +23,7 @@ internal class ToolbarEnterPlayMode : BaseToolbarElement {
 			"Reload Domain",
 			"FastMode",
 		};
+#endif
 	}
 
 	protected override void OnDrawInList(Rect position) {

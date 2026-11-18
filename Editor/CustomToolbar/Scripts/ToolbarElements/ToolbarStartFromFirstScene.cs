@@ -32,6 +32,7 @@ internal class ToolbarStartFromFirstScene : BaseToolbarElement {
 	public override int SortingGroup => 3;
 
 	public override void Init() {
+		EditorApplication.playModeStateChanged -= LogPlayModeState;
 		EditorApplication.playModeStateChanged += LogPlayModeState;
 	}
 

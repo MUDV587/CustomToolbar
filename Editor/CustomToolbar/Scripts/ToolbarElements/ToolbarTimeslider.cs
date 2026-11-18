@@ -9,8 +9,8 @@ internal class ToolbarTimeslider : BaseToolbarElement {
 	[SerializeField] float minTime = 1;
 	[SerializeField] float maxTime = 120;
 
-    bool defaultSetOnce;
-    float selectedTimeScale;
+	[SerializeField] bool defaultSetOnce;
+	[SerializeField] float selectedTimeScale;
 
     public override string NameInList => "[Slider] Timescale";
 	public override int SortingGroup => 1;

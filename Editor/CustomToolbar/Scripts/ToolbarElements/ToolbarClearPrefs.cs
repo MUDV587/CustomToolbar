@@ -23,8 +23,10 @@ internal class ToolbarClearPrefs : BaseToolbarElement {
 
 	protected override void OnDrawInToolbar() {
 		if (GUILayout.Button(clearPlayerPrefsBtn, ToolbarStyles.commandButtonStyle)) {
-			PlayerPrefs.DeleteAll();
-			Debug.Log("Clear Player Prefs");
+			if (EditorUtility.DisplayDialog("Attention", "This will delete ALL saved PlayerPrefs of this project. Continue?", "Delete", "Cancel")) {
+				PlayerPrefs.DeleteAll();
+				Debug.Log("Clear Player Prefs");
+			}
 		}
 	}
 }

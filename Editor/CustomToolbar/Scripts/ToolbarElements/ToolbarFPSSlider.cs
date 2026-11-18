@@ -9,7 +9,7 @@ internal class ToolbarFPSSlider : BaseToolbarElement {
 	[SerializeField] int minFPS = 1;
 	[SerializeField] int maxFPS = 120;
 
-	int selectedFramerate;
+	[SerializeField] int selectedFramerate;
 
 	public override string NameInList => "[Slider] FPS";
 	public override int SortingGroup => 1;
